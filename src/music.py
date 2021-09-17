@@ -60,16 +60,18 @@ class Music(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.slash_command()
-    async def join(self, ctx, *, channel: discord.VoiceChannel):
+    @commands.command()
+    async def join(self, ctx, *, channel: discord.VoiceChannel=None):
         """Joins a voice channel"""
+        if not channel:
+            channel = ctx.author.voice.channel
 
         if ctx.voice_client is not None:
             return await ctx.voice_client.move_to(channel)
 
         await channel.connect()
 
-    @commands.slash_command()
+    @commands.command()
     async def music(self, ctx, *, url: Option(int, 'YouTube Videoname oder -Link')):
         """Plays from a url (almost anything youtube_dl supports)"""
 
@@ -79,7 +81,7 @@ class Music(commands.Cog):
 
         await ctx.send(embed=discord.Embed(title=f'Ich spiele ab: {player.title}'))
 
-    @commands.slash_command()
+    @commands.command()
     async def stream(self, ctx, *, url):
         """Streams from a url (same as yt, but doesn't predownload)"""
 
@@ -89,17 +91,17 @@ class Music(commands.Cog):
 
         await ctx.send(embed=discord.Embed(title=f'Ich spiele im Stream ab: {player.title}'))
 
-    @commands.slash_command()
+    @commands.command()
     async def volume(self, ctx, volume: Option(int, 'Prozent')):
         """Changes the player's volume"""
 
         if ctx.voice_client is None:
-            return await ctx.send('Not connected to a voice channel.')
+            return await ctx.send(embed=discord.Embed(title=f'Ich muss erstmal joinen. Lul.'))
 
         ctx.voice_client.source.volume = volume / 100
         await ctx.send(embed=discord.Embed(title=f'Lautstärke wurde auf {volume}% geändert'))
 
-    @command.slash_command()
+    @commands.command()
     async def stop(self, ctx):
         """Stops and disconnects the client from voice"""
 
