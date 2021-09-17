@@ -1,10 +1,13 @@
-import movienight
+import movienight, music
 
 import os
 import dotenv
 import socket
 import discord
+import asyncio
+import datetime
 
+from discord.ext import commands
 from discord.app import Option
 from discordTogether import DiscordTogether
 
@@ -14,29 +17,35 @@ COLOR = 0x6e00ff
 TESTING_MODE = True
 PREFIX = '/'
 
-client = discord.Bot(intents=discord.Intents.all())
+client = commands.Bot(command_prefix='z/', intents=discord.Intents.all())
 togetherControl = DiscordTogether(client)
+
+async def status_task():
+    while True:
+        await client.change_presence(activity=discord.Game(f'Fortnite'))
+        await asyncio.sleep(10)
 
 @client.event
 async def on_ready():
     print('ONLINE as', client.user)
-    await client.change_presence(activity=discord.Game('mit Jessy 🦋'))
+    client.loop.create_task(status_task())
 
 @client.event
 async def on_command_error(ctx, error):
+    return
     # error: 'error message'
     error_messages = {
-        discord.ExtensionError: 'Es gab ein Problem in einer Erweiterung ("cog").',
-        discord.CheckFailure: 'Es gab ein Problem mit der Überprüfung, ob etwas ausgeführt werden soll.',
-        discord.UserInputError: 'Überprüfe bitte deine Eingabe.',
-        discord.CommandNotFound: f'Befehl nicht gefunden. Benutze **`{PREFIX}help`** für eine Befehlsliste.',
-        discord.MissingRequiredArgument: f'Du hast ein Befehlsargument vergessen, benutze **`{PREFIX}help {ctx.message.content.replace(PREFIX, "").split()[0]}`** für Hilfe.',
-        discord.TooManyArguments: f'Du hast zu viele Argumente eingegeben, benutze **`{PREFIX}help {ctx.message.content.replace(PREFIX, "").split()[0]}`** für Hilfe.',
-        discord.Cooldown: 'Bitte warte, du kannst diesen Befehl erst später ausführen.',
-        discord.NoPrivateMessage: 'Dies Funktioniert nicht in DM-Kanälen.',
-        discord.MissingPermissions: 'Du brauchst leider folgende Berechtigung(en), um das zu tun:',
-        discord.BotMissingPermissions: 'Ich brauche folgende Berechtigung(en), um das zu tun:',
-        discord.BadArgument: f'Es gab ein Problem mit dem Konvertieren der Argumente, benutze den folgenden Befehl für Hilfe: **`{PREFIX}help {ctx.message.content.replace(PREFIX, "").split()[0]}`**',
+        commands.ExtensionError: 'Es gab ein Problem in einer Erweiterung ("cog").',
+        commands.CheckFailure: 'Es gab ein Problem mit der Überprüfung, ob etwas ausgeführt werden soll.',
+        commands.UserInputError: 'Überprüfe bitte deine Eingabe.',
+        commands.CommandNotFound: f'Befehl nicht gefunden. Benutze **`{PREFIX}help`** für eine Befehlsliste.',
+        commands.MissingRequiredArgument: f'Du hast ein Befehlsargument vergessen, benutze **`{PREFIX}help {ctx.message.content.replace(PREFIX, "").split()[0]}`** für Hilfe.',
+        commands.TooManyArguments: f'Du hast zu viele Argumente eingegeben, benutze **`{PREFIX}help {ctx.message.content.replace(PREFIX, "").split()[0]}`** für Hilfe.',
+        commands.Cooldown: 'Bitte warte, du kannst diesen Befehl erst später ausführen.',
+        commands.NoPrivateMessage: 'Dies Funktioniert nicht in DM-Kanälen.',
+        commands.MissingPermissions: 'Du brauchst leider folgende Berechtigung(en), um das zu tun:',
+        commands.BotMissingPermissions: 'Ich brauche folgende Berechtigung(en), um das zu tun:',
+        commands.BadArgument: f'Es gab ein Problem mit dem Konvertieren der Argumente, benutze den folgenden Befehl für Hilfe: **`{PREFIX}help {ctx.message.content.replace(PREFIX, "").split()[0]}`**',
     }
 
     error_msg = 'Unbekannter Fehler.'
@@ -54,7 +63,7 @@ async def on_command_error(ctx, error):
     if 'Command raised an exception' in str(error): error_msg = 'Huch, es gab ein Problem mit dem Code.'
 
     # add detailed info
-    if isinstance(error, discord.MissingPermissions) or isinstance(error, discord.BotMissingPermissions):
+    if isinstance(error, commands.MissingPermissions) or isinstance(error, commands.BotMissingPermissions):
         error_msg += f'\n**`{", ".join(error.missing_perms)}`**\n'
 
     # add full error description formatted as a code text
@@ -74,12 +83,12 @@ async def on_command_error(ctx, error):
 @client.slash_command()
 async def movienight(
     ctx,
-    date: Option(str, 'Datum'),
+    date: Option(str, 'Uhrzeit (und ggf. Datum)'),
     topic: Option(str, 'Thema', required=False, default='YouTube Together'),
 ):
 
-    invite_link = await togetherControl.create_link(ctx.author.voice.channel.id, 'youtube')
-    await ctx.send(f'Join: {invite_link}')
+    invite_link = await togetherControl.create_link(ctx.author.voice.channel.id, 'youtube', max_age=604800)
+    await ctx.send(embed=discord.Embed(title='Hier klicken:',  description=invite_link))
     
 @client.slash_command()
 async def commandinfo(
@@ -139,5 +148,7 @@ async def commandinfo(
 # for filename in os.listdir(os.getcwd() + '/src/cogs/'):
 #     if filename.endswith('.py'):
 #         client.load_extension(f'cogs.{filename[:-3]}')
+
+client.add_cog(music.Music(client))
 
 client.run(os.getenv('DISCORD_TOKEN'))  # run bot with the token set in the .env file
